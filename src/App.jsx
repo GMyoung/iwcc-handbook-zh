@@ -39,10 +39,8 @@ function navigate(section,target=null) {
 }
 function paragraphs(value) {
   if (zh) { const sentences=value.match(/[^。！？]+[。！？]?/g)||[value]; const out=[];for(let i=0;i<sentences.length;i+=2)out.push(sentences.slice(i,i+2).join(''));return out.filter(Boolean) }
-  const sentences=value.split(/(?<=[.!?])\s+(?=[A-Z(])/)
-  const out=[];let line=''
-  for(const sentence of sentences){if(line.length+sentence.length>430&&line){out.push(line);line=''}line+=(line?' ':'')+sentence}
-  if(line)out.push(line)
+  const out=[]
+  for(const block of value.split(/\n\s*\n/)){let line='';for(const sentence of block.split(/(?<=[.!?])\s+(?=[A-Z(])/)){if(line.length+sentence.length>430&&line){out.push(line);line=''}line+=(line?' ':'')+sentence}if(line)out.push(line)}
   return out
 }
 
