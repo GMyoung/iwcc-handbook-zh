@@ -68,7 +68,7 @@ function Lesson({item,learned,onToggle}) {
     <div className="reading-prose">{paragraphs(detail(item)).map((p,i)=><p key={i}>{p}</p>)}</div>
     <RuleDiagram item={item}/>
     {item.id==='9.2'&&<ScheduleTable/>}
-    <div className="example"><div className="example-label">{pick('具体情境','A concrete situation')} <span>· {pick('虚构教学例子','fictional teaching example')}</span></div><p>{example(item)}</p></div>
+    <div className="example"><div className="example-label">{pick('具体情境','A concrete situation')} <span>· {pick('虚构教学例子','fictional teaching example')}</span></div><div className="scenario-art"><img src={`${import.meta.env.BASE_URL}illustrations/${item.id.replace('.','-')}.webp`} alt="" width="1536" height="512" loading="lazy" decoding="async"/></div><p>{example(item)}</p></div>
     {({'5.9':5,'6.2':6,'8.2':8})[item.id]&&<CaseStudy section={item.section}/>}
     <Source item={item}/>
     <div className="lesson-bottom"><button type="button" className={'learn-button '+(isLearned?'is-learned':'')} onClick={()=>onToggle(item.id)}>{isLearned?`✓ ${pick('已学会','Learned')}`:`＋ ${pick('我学会了','Mark as learned')}`}</button></div>
