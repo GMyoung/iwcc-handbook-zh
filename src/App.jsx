@@ -1,202 +1,122 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import lessons from './data.json'
+import { chapters, cases } from './chapters.js'
+import './styles.css'
 
-const LANG = import.meta.env.VITE_SITE_LANG === 'en' ? 'en' : 'zh'
-const isZh = LANG === 'zh'
-const sibling = isZh ? 'https://gmyoung.github.io/iwcc-handbook-en/' : 'https://gmyoung.github.io/iwcc-handbook-zh/'
-const original = 'https://iwcc.illinois.gov/content/dam/soi/en/web/iwcc/about/handbook/documents/handbook.pdf'
-const current = 'https://iwcc.illinois.gov/content/dam/soi/en/web/iwcc/documents/handbook/IWCC%20handbook%2006.06.24.pdf'
-const handbookIndex = 'https://iwcc.illinois.gov/about/handbook.html'
-const benefitRates = 'https://iwcc.illinois.gov/resources/benefits.html'
-const formPage = 'https://iwcc.illinois.gov/resources/forms.html'
+const lang = import.meta.env.VITE_SITE_LANG === 'en' ? 'en' : 'zh'
+const zh = lang === 'zh'
+const sibling = zh ? 'https://gmyoung.github.io/iwcc-handbook-en/' : 'https://gmyoung.github.io/iwcc-handbook-zh/'
+const handbook = 'https://iwcc.illinois.gov/content/dam/soi/en/web/iwcc/documents/handbook/IWCC%20handbook%2006.06.24.pdf'
+const sourceIndex = 'https://iwcc.illinois.gov/about/handbook.html'
 const compfile = 'https://iwcc.illinois.gov/resources/resources-for-pro-se.html'
-const courtCases = [
-  {
-    section: 5,
-    name: 'Bryon Kawa · Ford Motor Company',
-    citation: 'Kawa v. IWCC, 2013 IL App (1st) 120469WC',
-    url: 'https://www.illinoiscourts.gov/Resources/08c9de1a-53d2-47fc-b8ea-7e0d35f55c33/1120469WC.pdf',
-    zh: ['福特员工 Bryon Kawa 在工作相关事故后，肩、背及膝盖等症状和治疗发生争议。', '委员会认为部分后续治疗及康复不应支付，并争论其是否达到最大医疗改善。', '上诉法院撤销了因果关系、MMI、TTD、医疗与康复维持福利的部分结论，发回重审；平均周薪和罚款等部分维持。'],
-    en: ['Ford employee Bryon Kawa disputed the treatment and work connection of shoulder, back, and knee conditions after an accident.', 'The Commission had denied parts of ongoing care and rehabilitation and found MMI.', 'The appellate court reversed and remanded the causation, MMI, TTD, medical, and rehabilitation rulings, while affirming the AWW and penalty rulings.']
-  },
-  {
-    section: 6,
-    name: 'Jeff Urban · Interstate Scaffolding',
-    citation: 'Interstate Scaffolding v. IWCC, No. 107852 (Ill. 2010)',
-    url: 'https://www.illinoiscourts.gov/files/107852.pdf/opinion',
-    zh: ['木工 Jeff Urban 工伤后从事轻工作，后来因与伤情无关的行为被雇主解雇。', '雇主停止支付 TTD；委员会认为其伤情尚未稳定，仍应给付。', '伊州最高法院支持继续给付：因无关行为被解雇，不会自动终止工伤 TTD；关键仍是伤情是否达到最大医疗改善。'],
-    en: ['Carpenter Jeff Urban worked light duty after his injury, then was dismissed for conduct unrelated to that injury.', 'The employer stopped TTD, although the Commission found his condition had not stabilized.', 'The Illinois Supreme Court held that unrelated dismissal did not automatically end TTD; maximum medical improvement remained central.']
-  },
-  {
-    section: 8,
-    name: 'Craig Kolin · W.B. Olson',
-    citation: 'W.B. Olson v. IWCC, 2012 IL App (1st) 113129WC',
-    url: 'https://www.illinoiscourts.gov/files/1113129wc.pdf/opinion',
-    zh: ['Craig Kolin 膝部工伤后参加职业康复计划，雇主质疑计划及生活维持福利。', '委员会认可其康复努力，并要求雇主支付相关维持福利和辅导员服务费用。', '上诉法院维持该决定并发回后续程序；个案说明康复计划的合理性与实际参与证据很重要。'],
-    en: ['After a knee injury, Craig Kolin took part in vocational rehabilitation; his employer challenged the plan and maintenance award.', 'The Commission credited his efforts and awarded maintenance and counselor costs.', 'The appellate court affirmed and remanded, emphasizing evidence that the rehabilitation plan and participation were reasonable.']
+const schedule = [
+  ['Thumb','拇指','70','76','70','76','76'],['Index finger','食指','40','43','40','43','43'],['Middle finger','中指','35','38','35','38','38'],['Ring finger','无名指','25','27','25','27','27'],['Little finger','小指','20','22','20','22','22'],['Great toe','大脚趾','35','38','35','38','38'],['Each other toe','其他每个脚趾','12','13','12','13','13'],['Hand','手','190','205','190','205','205'],['Carpal tunnel, repetitive trauma','重复创伤性腕管综合征','—','—','—','—','28.5–57'],['Arm','手臂','235','253','235','253','253'],['Above-elbow amputation','肘上截肢','250','270','250','270','270'],['Shoulder-joint amputation','肩关节截肢','300','323','300','323','323'],['Foot','脚','155','167','155','167','167'],['Leg','腿','200','215','200','215','215'],['Above-knee amputation','膝上截肢','225','242','225','242','242'],['Hip-joint amputation','髋关节截肢','275','296','275','296','296'],['Eye','眼','150','162','150','162','162'],['Eye removal','眼球摘除','160','173','160','173','173'],['Hearing, one ear','单耳听力损失','50','54','50','54','54'],['Hearing, both ears','双耳听力损失','200','215','200','215','215'],['One testicle','一侧睾丸','50','54','50','54','54'],['Both testicles','双侧睾丸','150','162','150','162','162']
+]
+const sectionLessons = n => lessons.filter(x => x.section === n)
+const title = item => zh ? item.zhTitle : item.enTitle
+const summary = item => zh ? item.zhSummary : item.enSummary
+const detail = item => zh ? item.zhDetail : item.enDetail
+const labels = zh ? {
+  book:'伊利诺伊工伤手册', edition:'2024 修订版 · 中文导读', chapters:'章节', search:'搜索具体问题', progress:'学习进度', home:'从第一章开始', lesson:'知识点', read:'进入阅读', next:'下一条', previous:'上一条', done:'标记已学会', learned:'已学会', story:'一个人怎样用到这条规则', storyNote:'标有“虚构教学情境”的故事用于解释规则；真实判例附法院原文。', rule:'直接读懂这条规则', key:'先抓住这一句', interactive:'动手试一试', source:'依据', current:'IWCC 2024 修订版', case:'真实判例', opinion:'查看法院判决', chapter:'返回本章', all:'全部章节', menu:'打开目录', close:'关闭目录', results:'搜索结果', noResults:'没有找到对应知识点', prevChapter:'上一章', nextChapter:'下一章', footnote:'教学阅读材料。个案结论仍取决于事实、证据和现行法律。', start:'开始阅读', overview:'这一章要学什么', lines:'知识点', jump:'继续阅读', apply:'把规则放进情境', count:'条', learn:'已学', font:'字号', language:'English', verify:'官方发布页'
+} : {
+  book:'Illinois Work Comp Handbook', edition:'2024 revision · reading edition', chapters:'Chapters', search:'Search a specific rule', progress:'Reading progress', home:'Start with chapter one', lesson:'Lesson', read:'Read lesson', next:'Next lesson', previous:'Previous', done:'Mark learned', learned:'Learned', story:'How one person used this rule', storyNote:'Stories labeled fictional are teaching examples. Actual cases link to the court opinion.', rule:'Read the rule in full', key:'The point to remember', interactive:'Try the rule', source:'Source', current:'IWCC 2024 revision', case:'Actual court case', opinion:'Read court opinion', chapter:'Back to chapter', all:'All chapters', menu:'Open chapters', close:'Close chapters', results:'Search results', noResults:'No matching lessons', prevChapter:'Previous chapter', nextChapter:'Next chapter', footnote:'Educational reading material. Individual outcomes depend on facts, evidence, and current law.', start:'Start reading', overview:'What this chapter teaches', lines:'lessons', jump:'Continue reading', apply:'Put the rule into a situation', count:'', learn:'learned', font:'Text size', language:'中文', verify:'Official handbook page'
+}
+
+function routeFromHash() {
+  const path = decodeURIComponent(window.location.hash.replace(/^#\/?/, ''))
+  const lesson = path.match(/^lesson\/(\d+\.\d+)$/) || path.match(/^lesson=(\d+\.\d+)$/)
+  if (lesson && lessons.some(x => x.id === lesson[1])) return {type:'lesson', id:lesson[1]}
+  const chapter = path.match(/^chapter\/(\d+)$/)
+  if (chapter && +chapter[1] >= 1 && +chapter[1] <= 11) return {type:'chapter', section:+chapter[1]}
+  return {type:'chapter', section:1}
+}
+function go(path) { window.location.hash = '#/' + path }
+function chapterPath(n) { return `chapter/${n}` }
+function lessonPath(id) { return `lesson/${id}` }
+function splitCopy(text) {
+  if (zh) {
+    const parts = text.match(/[^。！？]+[。！？]?/g) || [text]
+    const out = []
+    for (let i=0;i<parts.length;i+=2) out.push(parts.slice(i,i+2).join(''))
+    return out.filter(Boolean)
   }
-]
-
-const chapters = [
-  ['制度与保障', 'Coverage & benefits', '先弄清谁受保护、什么算工伤、可获得哪些福利。', 'Start with coverage, work connection, and available benefits.'],
-  ['报告伤害', 'Report an injury', '把通知、雇主响应和事故报告分清。', 'Separate employee notice from the employer’s accident report.'],
-  ['正式立案', 'File a claim', '掌握 CompFile、申请期限与自愿付款。', 'Learn CompFile, filing limits, and voluntary payments.'],
-  ['解决争议', 'Resolve a dispute', '看懂举证、审理、上诉、和解及执行。', 'Follow proof, hearings, review, settlements, and enforcement.'],
-  ['医疗福利', 'Medical care', '治疗范围、选医生、账单与体检。', 'Explore covered care, provider choice, bills, and examinations.'],
-  ['临时全残 TTD', 'Temporary total disability', '何时开始、如何计算、何时结束。', 'Know when TTD applies, how it is measured, and when it ends.'],
-  ['临时部分失能 TPD', 'Temporary partial disability', '轻工作收入减少时怎样计算补差。', 'Calculate reduced earnings during light duty.'],
-  ['职业康复', 'Vocational rehabilitation', '无法回原岗位时的再就业与维持福利。', 'Understand retraining and maintenance after loss of the old job.'],
-  ['永久部分失能 PPD', 'Permanent partial disability', '比较四种评估路径和计算例子。', 'Compare four award paths and their example calculations.'],
-  ['永久全残 PTD', 'Permanent total disability', '了解资格、长期给付与后续变更。', 'Learn eligibility, ongoing payment, and later modification.'],
-  ['死亡与遗属', 'Death & survivors', '厘清丧葬费、受益人顺位和再婚影响。', 'See burial payments, beneficiary priority, and remarriage.']
-]
-
-const deeper = {
-  '2.3': [['一般事故：尽快通知，最迟通常为 45 天。','Ordinary accident: report as soon as practicable, generally no later than 45 days.'],['放射暴露与职业病的时间起点不同；不能机械套用 45 天。','Radiation exposure and occupational disease have different triggering rules.']],
-  '2.4': [['雇主应先提供急救和必要医疗，并通知保险方，即使其质疑索赔。','The employer should arrange first aid and necessary care and notify its carrier, even if it disputes the claim.'],['停工超过三天后，应开始 TTD，或书面说明需补资料／拒付理由。','After more than three days off, it should begin TTD or explain missing information or denial in writing.']],
-  '2.6': [['工作相关死亡须在两个工作日内向 IWCC 书面报告。','A work-related death is reportable to the IWCC in writing within two working days.'],['超过三个预定工作日缺勤的伤病，通常须在一个月内上报 Form 45。','An injury or illness causing more than three scheduled workdays lost is generally reported on Form 45 within one month.']],
-  '3.1': [['2013 年 PDF 的“纸质三份、邮寄或现场交付”已不适用。','The 2013 instruction to submit three paper copies by mail or in person is obsolete.'],['2024 年 IWCC 手册说明：律师与自行代理者均先注册 CompFile，再电子提交。','The 2024 handbook directs attorneys and self-represented claimants to register for CompFile and file electronically.']],
-  '3.4': [['案件获编号、仲裁员和定期状态日；双方要主动请求审理。','A case receives a number, arbitrator, and recurring status calls; the parties must request a trial.'],['手册描述每三个月一次状态日；长期不推进，三年后可能被驳回。','The handbook describes status calls every three months and possible dismissal after three years of inactivity.']],
-  '3.7': [['通常为事故或职业病失能后三年，或最后一次 TTD／医疗账单支付后两年，以较晚者为准。','Usually the later of three years from injury or disablement, or two years after the last TTD or medical payment.'],['特殊疾病和死亡案件可能有不同期限。','Certain diseases and death cases may have different limits.']],
-  '3.10': [['及时、自愿支付的医疗与 TTD 等款项通常不能作为律师收费基数。','Timely voluntary medical and TTD payments generally are not a fee base.'],['手册说明通常的 20% 上限，并要求代理协议经 IWCC 批准；特殊听证情形另论。','The handbook describes a general 20% cap and Commission-approved representation agreement, with specified exceptions.']],
-  '4.2': [['要件清单：管辖、雇佣关系、工作事故／暴露、医学因果关系、及时通知。','The core checklist is jurisdiction, employment, work event or exposure, medical causation, and timely notice.'],['即使这些成立，残疾程度、平均周薪、治疗必要性和罚款仍可能有争议。','Disability extent, AWW, medical necessity, and penalties can remain disputed.']],
-  '4.4': [['19(b) 可处理医疗或补偿争议，手册写明复核申请后 180 天的决定要求。','Section 19(b) can address medical or compensation disputes; the handbook describes a 180-day decision requirement after review is filed.'],['19(b-1) 有更多技术条件，面向因伤不能工作又未获医疗或 TTD 的员工。','Section 19(b-1) has additional technical requirements and addresses workers unable to work without medical benefits or TTD.'],['加速程序只处理指定问题，永久失能等其他争议仍会返回一般程序。','Expedited proceedings decide specified issues; remaining disputes return to the ordinary docket.']],
-  '4.14': [['和解一般会最终关闭未来权利，除非合同明确保留。','A settlement generally closes future rights unless the contract expressly preserves them.'],['裁决后追加医疗、残疾变化的 30 或 60 个月窗口、PTD 变化等有各自规则。','Post-award medical care, 30- or 60-month disability-change windows, and PTD changes each have separate rules.']],
-  '5.4': [['无 PPP 时通常有两次医疗机构选择；有 PPP 时通常在网络内有两次选择。','Without a PPP, the worker generally has two provider choices; with a PPP, generally two choices in the network.'],['急救、急诊和符合规则的转诊一般不占这两次。','First aid, emergency care, and qualifying referrals generally do not use these choices.']],
-  '5.6': [['可通过书面声明退出 PPP。','A worker can decline a PPP with a written statement.'],['退出计作一次选择；若还要另开医疗机构链，可能需雇主批准。','Declining counts as one choice; another separate provider chain may require employer approval.']],
-  '5.9': [['选医规则与治疗必要性是两道不同的判断。','Provider choice and medical necessity are separate questions.'],['利用审查是证据之一，IWCC 会结合全部证据决定是否合理必要。','Utilization review is one piece of evidence; the Commission weighs the full record.']],
-  '5.10': [['及时就医、配合合理治疗，并告知医师这是工作相关伤病。','Seek care promptly, cooperate with reasonable treatment, and tell providers it is work-related.'],['向雇主提供所选医师资料和与索赔有关的病历；不等于开放全部医疗隐私。','Supply provider details and relevant records; this does not mean unrestricted access to all medical history.']],
-  '6.5': [['前三个失去的工作日一般不付 TTD。','The first three lost workdays are generally a waiting period.'],['因伤停工达到 14 个日历日时，前三个工作日可能追溯补付。','At 14 calendar days of injury-related absence, those first three workdays may become payable.']],
-  '6.6': [['2024 手册说明，雇主收到受伤通知后应在 14 天内首次支付 TTD。','The 2024 handbook says the first TTD payment should be made within 14 days after injury notice.'],['若返工前停付，应不晚于最后一次付款日给员工书面说明。','If payment stops before return to work, the employer should provide a written explanation no later than the last payment date.']],
-  '7.2': [['2011 年 6 月 28 日前的伤害，用轻工作净收入；之后用税前总收入。','Before June 28, 2011, the formula uses net light-duty earnings; on or after that date, gross earnings.'],['官方例子：旧岗位当前 $925、轻工作 $500；差额 $425 的三分之二为每周 $283.33。','Official example: $925 current old-job pay minus $500 light-duty pay leaves $425; two-thirds is $283.33 weekly.']],
-  '9.2': [['工资差额以旧岗位当前收入与新岗位收入差额的三分之二计算。','Wage differential is two-thirds of the gap between current old-job earnings and new-job earnings.'],['部位表和整体身体损失以 60% AWW 乘法定周数与失用比例；日期影响部位表周数。','Scheduled and whole-person awards use 60% of AWW, statutory weeks, and loss percentage; injury date affects scheduled weeks.'],['容貌损害有部位和愈合要求；同一部位通常不能再重复拿失用福利。','Disfigurement has body-area and healing requirements; loss-of-use recovery for the same part is generally mutually exclusive.']],
-  '9.3': [['2011 年 9 月 1 日后伤害的五因素：医生损伤报告、职业、年龄、未来收入能力、病历佐证。','For post-September 1, 2011 injuries: physician impairment report, occupation, age, future earnings, and corroborating medical records.'],['仲裁员须说明权重，不应只看其中一个因素。','The arbitrator explains weighting; no single factor should decide the result alone.']],
-  '9.5': [['工资差额裁决：符合条件的身体状况变化可在最终裁决后 60 个月内申请调整。','For qualifying wage-differential awards, changed condition may support a petition within 60 months after final award.'],['其他 PPD 类别的对应窗口通常为 30 个月。','For other PPD categories, the corresponding window is generally 30 months.']],
-  '11.3': [['配偶和未满 18 岁子女优先。','Spouse and children under 18 are primary beneficiaries.'],['没有第一顺位时，再依次看完全依赖的父母及至少 50% 依赖的其他人。','Absent primary beneficiaries, consider totally dependent parents and then others at least 50% dependent.']],
-  '11.4': [['再婚时仍有合资格子女，遗属福利继续。','If eligible children remain at remarriage, benefits continue.'],['没有合资格子女时，配偶收到相当于两年福利的最后一次款项，之后权利终结。','Without eligible children, the spouse receives a final two-year-equivalent lump sum, ending further rights.']]
+  const parts = text.split(/(?<=[.!?])\s+(?=[A-Z(])/)
+  const out=[]; let buffer=''
+  for (const part of parts) { if ((buffer+part).length>360 && buffer) {out.push(buffer);buffer=''} buffer+=(buffer?' ':'')+part }
+  if (buffer) out.push(buffer)
+  return out
 }
 
-const ui = {
-  zh: { edition: '中文版', title: '工伤手册', subtitle: '逐条学', intro: '把 25 页官方手册变成 11 章、94 个能读懂和试一试的知识点。', search: '搜索 94 个问题', complete: '已掌握', mastered: '标记已掌握', done: '已掌握', next: '下一条', prev: '上一条', outline: '章节目录', lesson: '本条要点', try: '动手理解', play: '演示下一步', reset: '重新演示', historical: '展开 2013 年原文（历史资料）', source: '来源与核对', archive: '2013 原手册', update: '2024 官方修订版', official: 'IWCC 手册发布页', case: '真实判例', outcome: '查看法院原判决', all: '全部', count: '学习进度', warning: '这份附件印于 2013 年。纸质立案、旧网址及部分金额已经过时；具体行动请核对 IWCC 最新资料。', note: '教学演示只展示原理，金额未计法定上下限，不能作为个案计算结果。', inspect: '本条演示', stage: ['情境', '规则', '下一步'], mobileMenu: '目录', read: '阅读', sourceDate: '2026-09-28 核对官方发布页', empty: '没有找到匹配的问题。' },
-  en: { edition: 'English edition', title: 'Work Comp', subtitle: 'field guide', intro: 'The 25-page official handbook, rebuilt as 11 chapters and 94 readable, interactive lessons.', search: 'Search 94 questions', complete: 'mastered', mastered: 'Mark as learned', done: 'Learned', next: 'Next lesson', prev: 'Previous', outline: 'Chapters', lesson: 'The rule in plain language', try: 'Try the idea', play: 'Next step', reset: 'Replay', historical: 'Read the 2013 original (historical)', source: 'Sources & verification', archive: '2013 handbook', update: '2024 official revision', official: 'IWCC handbook page', case: 'Real court case', outcome: 'Read the court opinion', all: 'All', count: 'Progress', warning: 'The supplied handbook was printed in 2013. Paper filing, old links, and some amounts are outdated. Check current IWCC material before acting.', note: 'Illustrations teach the principle. Calculators omit statutory minimums and maximums and are not case-specific awards.', inspect: 'Micro demonstration', stage: ['Situation', 'Rule', 'Next move'], mobileMenu: 'Chapters', read: 'Read', sourceDate: 'Official publication page checked 2026-09-28', empty: 'No matching questions.' }
-}[LANG]
-
-function NumberField({label, value, onChange, prefix = '$', min = 0, max = 100000}) {
-  return <label className="number-field"><span>{label}</span><div><span>{prefix}</span><input type="number" min={min} max={max} step="any" value={value} onChange={e => onChange(Number(e.target.value))} /></div></label>
+function NumberInput({label,value,set,min=0,max=100000}) {
+  return <label className="lab-field"><span>{label}</span><input type="number" value={value} min={min} max={max} onChange={e=>set(Number(e.target.value))} /></label>
+}
+function Toggle({on,onChange,children}) { return <button type="button" className={'toggle-chip '+(on?'active':'')} onClick={()=>onChange(!on)} aria-pressed={on}>{children}<span>{on?'✓':'+'}</span></button> }
+function Lab({section}) {
+  const [a,setA]=useState(false), [b,setB]=useState(false), [c,setC]=useState(false)
+  const [day,setDay]=useState(20), [wage,setWage]=useState(900), [light,setLight]=useState(500), [weeks,setWeeks]=useState(253), [loss,setLoss]=useState(20)
+  const pick=(z,e)=>zh?z:e
+  const money=n=>'$'+Math.max(0,n).toLocaleString(lang==='zh'?'zh-CN':'en-US',{maximumFractionDigits:2,minimumFractionDigits:2})
+  const note=<p className="lab-note">{pick('演示只解释判断顺序；法定上下限、事故日期及个案证据可能改变结果。','This teaches the decision sequence; legal limits, injury date, and evidence may change the result.')}</p>
+  if (section===1) return <div className="lab-content"><p>{pick('点亮两项事实，看为什么“在公司受伤”并非完整结论。','Turn on both facts to see why “hurt at work” is not the complete test.')}</p><div className="lab-controls"><Toggle on={a} onChange={setA}>{pick('存在雇佣关系','Employment relationship')}</Toggle><Toggle on={b} onChange={setB}>{pick('伤害因工作而起','Injury arose from work')}</Toggle></div><div className="lab-result">{a&&b?pick('具备两个基础环节；仍要核对通知、因果关系与具体福利。','Two foundational links are present. Notice, causation, and the requested benefit still need proof.'):pick('还缺少关键事实。补充证据后才能继续判断福利。','A key fact remains missing. Gather proof before deciding the benefit.')}</div>{note}</div>
+  if (section===2) return <div className="lab-content"><p>{pick('假设普通事故发生在第 0 天。拖动员工通知时间。','Suppose an ordinary accident occurred on day 0. Move the notice date.')}</p><label className="slider-label">{pick('通知雇主：第','Notice to employer: day')} <strong>{day}</strong> {pick('天','')}<input type="range" min="0" max="60" value={day} onChange={e=>setDay(+e.target.value)} /></label><div className="timeline-meter"><span style={{width:`${Math.min(day/60*100,100)}%`}} /></div><div className="lab-result">{day<=45?pick('仍在普通事故通常的 45 天窗口内；越早通知越容易留下证据。','Within the usual 45-day window for an ordinary accident; earlier notice is easier to prove.'):pick('已超过普通事故通常的 45 天窗口。职业病等有不同起算规则。','Beyond the usual ordinary-accident window. Occupational disease and other exposures have different rules.')}</div>{note}</div>
+  if (section===3) return <div className="lab-content"><p>{pick('这三个动作分别解决不同问题，点选已经完成的动作。','These three actions solve different problems. Select the steps already completed.')}</p><div className="lab-controls"><Toggle on={a} onChange={setA}>{pick('通知雇主','Notify employer')}</Toggle><Toggle on={b} onChange={setB}>{pick('雇主报事故','Employer accident report')}</Toggle><Toggle on={c} onChange={setC}>{pick('CompFile 正式立案','File in CompFile')}</Toggle></div><div className="lab-result">{c?pick('有正式申请记录；保存回执并继续跟进案件。','A formal application is on file. Save the receipt and keep the case moving.'):pick('尚未完成正式立案。前两个动作不能代替 CompFile 申请。','No formal claim has been filed. The first two actions do not replace the CompFile application.')}</div><a className="lab-link" href={compfile} target="_blank" rel="noreferrer">CompFile / IWCC ↗</a></div>
+  if (section===4) return <div className="lab-content"><p>{pick('林娜准备听证：把需要证明的五个环节点亮。','Lina prepares for a hearing. Turn on the five links she must prove.')}</p><div className="lab-controls"><Toggle on={a} onChange={setA}>{pick('雇佣与工作事故','Employment & event')}</Toggle><Toggle on={b} onChange={setB}>{pick('医学因果关系','Medical causation')}</Toggle><Toggle on={c} onChange={setC}>{pick('及时通知','Timely notice')}</Toggle></div><div className="lab-result">{[a,b,c].filter(Boolean).length}/3 · {a&&b&&c?pick('基础证据链成形；还要核对管辖、工资和福利程度。','The core record is taking shape. Jurisdiction, wage, and benefit extent still matter.'):pick('证据链仍有空缺；结论应由事实和医疗记录支撑。','The proof chain has gaps; facts and medical records must support the claim.')}</div></div>
+  if (section===5) return <div className="lab-content"><p>{pick('试着改变医疗路径。急诊与符合规则的转诊通常不占独立选医次数。','Try a care path. Emergency care and qualifying referrals generally do not use independent provider choices.')}</p><div className="lab-controls"><Toggle on={a} onChange={setA}>{pick('雇主设有 PPP','Employer has a PPP')}</Toggle><Toggle on={b} onChange={setB}>{pick('书面退出 PPP','Decline PPP in writing')}</Toggle></div><div className="lab-result">{a&&b?pick('退出计作一次选择；另开独立治疗链前，先核对雇主批准要求。','Declining uses one choice; check approval before starting another independent treatment chain.'):a?pick('通常可在 PPP 网络内作两次独立选择。','Generally two independent choices are available within the PPP network.'):pick('没有 PPP 时，通常有两次独立医疗机构选择。','Without a PPP, the worker generally has two independent provider choices.')}</div>{note}</div>
+  if (section===6) return <div className="lab-content"><div className="lab-grid"><NumberInput label={pick('平均周薪 AWW ($)','Average weekly wage ($)')} value={wage} set={setWage}/><NumberInput label={pick('因伤缺勤的日历日','Calendar days away')} value={day} set={setDay} max={365}/></div><div className="lab-result big">{money(wage*2/3)} <small>{pick('每周基础公式：AWW × 2/3','weekly base formula: AWW × 2/3')}</small></div><p>{day>=14?pick('达到 14 个日历日：最初三个失去的工作日可能追溯补付。','At 14 calendar days, the first three lost workdays may become payable.'):pick('未达到 14 个日历日：最初三个失去的工作日通常不付。','Below 14 calendar days, the first three lost workdays are generally unpaid.')}</p>{note}</div>
+  if (section===7) return <div className="lab-content"><div className="lab-grid"><NumberInput label={pick('原岗位当前周薪 ($)','Current old-job weekly pay ($)')} value={wage} set={setWage}/><NumberInput label={pick('轻工作税前周薪 ($)','Light-duty gross weekly pay ($)')} value={light} set={setLight}/></div><div className="lab-result big">{money((wage-light)*2/3)} <small>{pick('每周 TPD 教学估算','weekly TPD illustration')}</small></div><p>{pick('公式：(原岗位当前收入 − 轻工作收入) × 2/3。2011 年 6 月 28 日前的伤害有不同净收入规则。','Formula: (current old-job pay − light-duty pay) × 2/3. Injuries before June 28, 2011 use a different net-pay rule.')}</p>{note}</div>
+  if (section===8) return <div className="lab-content"><p>{pick('康复计划不是一张表：每一步都留下参与证据。','A rehabilitation plan is more than a form. Each step creates evidence of participation.')}</p><div className="lab-controls"><Toggle on={a} onChange={setA}>{pick('无法回原岗位','Cannot return to old job')}</Toggle><Toggle on={b} onChange={setB}>{pick('参加合理计划','Participates in reasonable plan')}</Toggle><Toggle on={c} onChange={setC}>{pick('保存费用与出勤','Keeps costs and attendance')}</Toggle></div><div className="lab-result">{a&&b&&c?pick('治疗／训练的必要性、实际参与和附带费用都有材料可核对。','Need for training, actual participation, and incidental costs are all documented.'):pick('把工作限制、计划、出勤和费用串成可验证的时间线。','Connect restrictions, the plan, attendance, and costs in a verifiable timeline.')}</div></div>
+  if (section===9) return <div className="lab-content"><div className="lab-grid"><NumberInput label={pick('平均周薪 AWW ($)','Average weekly wage ($)')} value={wage} set={setWage}/><NumberInput label={pick('法定周数（示例）','Statutory weeks (example)')} value={weeks} set={setWeeks} max={1000}/><NumberInput label={pick('失用比例 (%)','Loss of use (%)')} value={loss} set={setLoss} max={100}/></div><div className="lab-result big">{money(wage*.6*weeks*loss/100)} <small>{pick('部位表公式演示：AWW × 60% × 周数 × 比例','schedule illustration: AWW × 60% × weeks × percentage')}</small></div><p>{pick('先判定适用哪条 PPD 路径，法定周数也随部位和事故日期改变。','First choose the applicable PPD path; statutory weeks depend on the body part and injury date.')}</p>{note}</div>
+  if (section===10) return <div className="lab-content"><p>{pick('PTD 不是“做不了原工作”就自动成立。','PTD does not follow automatically from inability to do the old job.')}</p><div className="lab-controls"><Toggle on={a} onChange={setA}>{pick('达到 MMI','Reached MMI')}</Toggle><Toggle on={b} onChange={setB}>{pick('无法做原岗位','Cannot do old job')}</Toggle><Toggle on={c} onChange={setC}>{pick('无法稳定从事任何工作','Cannot sustain any work')}</Toggle></div><div className="lab-result">{a&&c?pick('可能进入 PTD 评估；还须证明持续能力与适用法定标准。','The facts may support PTD review; lasting capacity and the legal standard still need proof.'):b?pick('仅失去原岗位还不够；下一步要评估其他可持续工作。','Loss of the old job alone is insufficient. Evaluate other sustainable work.'):pick('先把治疗阶段和实际工作能力查清。','First establish the treatment stage and actual work capacity.')}</div></div>
+  return <div className="lab-content"><p>{pick('改变家庭情况，看遗属顺位与再婚的影响。','Change the family situation to see beneficiary priority and remarriage effects.')}</p><div className="lab-controls"><Toggle on={a} onChange={setA}>{pick('有配偶','Spouse')}</Toggle><Toggle on={b} onChange={setB}>{pick('有未成年子女','Minor child')}</Toggle><Toggle on={c} onChange={setC}>{pick('配偶再婚','Spouse remarries')}</Toggle></div><div className="lab-result">{a&&c&&!b?pick('无合资格子女时，再婚配偶可获相当于两年福利的最后给付。','With no eligible child, the remarried spouse may receive a final two-year-equivalent payment.'):a&&c&&b?pick('仍有合资格子女时，遗属福利继续。','With an eligible child, survivors’ benefits continue.'):a||b?pick('配偶与未成年子女处于主要受益人顺位。','Spouse and minor children are primary beneficiaries.'):pick('没有第一顺位受益人时，才继续查看其他依赖者资格。','Without primary beneficiaries, review other dependents under the statutory order.')}</div>{note}</div>
 }
 
-function Flow({labels}) {
-  const [step,setStep] = useState(0)
-  useEffect(() => setStep(0), [labels.join('|')])
-  return <div className="flow-demo">
-    <div className="flow-track">{labels.map((s,i) => <button key={s} className={`flow-node ${i<=step?'active':''}`} onClick={() => setStep(i)} aria-current={i===step?'step':undefined}><b>{String(i+1).padStart(2,'0')}</b><span>{s}</span></button>)}</div>
-    <button className="demo-action" onClick={() => setStep((step+1)%labels.length)}>{step===labels.length-1?ui.reset:ui.play}<span aria-hidden="true">→</span></button>
-  </div>
-}
-
-const scheduleDates = [
-  ['Before 7/20/2005', '2005-07-20 to 2005-11-15', '2005-11-16 to 2006-01-31', '2006-02-01 to 2011-06-27', 'On or after 6/28/2011'],
-  ['2005-07-20 前', '2005-07-20 至 11-15', '2005-11-16 至 2006-01-31', '2006-02-01 至 2011-06-27', '2011-06-28 起']
-]
-const scheduleParts = [
-  ['Disfigurement','容貌损害',[150,162,150,162,162]],['Thumb','拇指',[70,76,70,76,76]],['Index finger','食指',[40,43,40,43,43]],['Middle finger','中指',[35,38,35,38,38]],['Ring finger','无名指',[25,27,25,27,27]],['Little finger','小指',[20,22,20,22,22]],['Great toe','大脚趾',[35,38,35,38,38]],['Other toe','其他脚趾',[12,13,12,13,13]],['Hand','手',[190,205,190,205,205]],['Carpal tunnel, repetitive trauma','重复创伤腕管综合征',[null,null,null,null,28.5]],['Arm','手臂',[235,253,235,253,253]],['Above-elbow amputation','肘上截肢',[250,270,250,270,270]],['Shoulder-joint amputation','肩关节截肢',[300,323,300,323,323]],['Foot','足',[155,167,155,167,167]],['Leg','腿',[200,215,200,215,215]],['Above-knee amputation','膝上截肢',[225,242,225,242,242]],['Hip-joint amputation','髋关节截肢',[275,296,275,296,296]],['Eye','眼',[150,162,150,162,162]],['Eye enucleation','摘除眼球',[160,173,160,173,173]],['Hearing loss, one ear','单耳听力损失',[50,54,50,54,54]],['Hearing loss, both ears','双耳听力损失',[200,215,200,215,215]],['One testicle','单侧睾丸',[50,54,50,54,54]],['Two testicles','双侧睾丸',[150,162,150,162,162]]
-]
-
-function PpdLab() {
-  const [method,setMethod]=useState('scheduled')
-  const [part,setPart]=useState(1)
-  const [date,setDate]=useState(4)
-  const [carpalWeeks,setCarpalWeeks]=useState(28.5)
-  const [aww,setAww]=useState(500)
-  const [loss,setLoss]=useState(10)
-  const [oldPay,setOldPay]=useState(1040)
-  const [newPay,setNewPay]=useState(500)
-  const weeks=part===9?carpalWeeks:scheduleParts[part][2][date]
-  const money=n=>new Intl.NumberFormat(isZh?'zh-CN':'en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(Math.max(0,n))
-  const methods=isZh?[['scheduled','部位表'],['whole','整体身体'],['wage','工资差额'],['scar','容貌损害']]:[['scheduled','Body-part schedule'],['whole','Whole person'],['wage','Wage differential'],['scar','Disfigurement']]
-  const result=method==='wage'?(oldPay-newPay)*2/3:method==='whole'?aww*.6*500*loss/100:aww*.6*(method==='scar'?scheduleParts[0][2][date]:weeks)*loss/100
-  const detail=method==='scheduled'?(isZh?`${scheduleParts[part][1]}：${weeks} 周 × ${loss}% × ${money(aww*.6)} = ${money(result)}。重复性创伤腕管综合征另有 28.5–57 周范围，请查看官方表。`:`${scheduleParts[part][0]}: ${weeks} weeks × ${loss}% × ${money(aww*.6)} = ${money(result)}. Repetitive-trauma carpal tunnel has a separate 28.5–57-week range in the official table.`):method==='whole'?(isZh?`500 周 × ${loss}% × ${money(aww*.6)} = ${money(result)}。`:`500 weeks × ${loss}% × ${money(aww*.6)} = ${money(result)}.`):method==='wage'?(isZh?`(${money(oldPay)} − ${money(newPay)}) × ⅔ = ${money(result)}／周。`:`(${money(oldPay)} − ${money(newPay)}) × ⅔ = ${money(result)} per week.`):(isZh?'同一身体部位的容貌损害与失用福利通常不能同时领取；结案前请核对适用条款。':'Disfigurement and loss-of-use awards for the same part generally cannot both be collected; check the applicable terms.')
-  return <div className="lab-content"><div className="method-tabs">{methods.map(([key,label])=><button key={key} className={method===key?'active':''} onClick={()=>setMethod(key)}>{label}</button>)}</div>
-    {(method==='scheduled'||method==='scar')&&<div className="fields"><label className="number-field"><span>{isZh?'受伤日期对应区间':'Injury-date bracket'}</span><select value={date} onChange={e=>{const next=Number(e.target.value);setDate(next);if(next<4&&part===9)setPart(1)}}>{scheduleDates[isZh?1:0].map((label,i)=><option value={i} key={i}>{label}</option>)}</select></label>{method==='scheduled'&&<label className="number-field"><span>{isZh?'身体部位':'Body part'}</span><select value={part} onChange={e=>setPart(Number(e.target.value))}>{scheduleParts.map((row,i)=>i===9&&date<4?null:<option key={i} value={i}>{isZh?row[1]:row[0]}</option>)}</select></label>}</div>}
-    {method==='scheduled'&&part===9&&<div className="carpal-range"><NumberField label={isZh?'法定周数范围内选值（28.5–57）':'Choose weeks within the 28.5–57 range'} value={carpalWeeks} onChange={v=>setCarpalWeeks(Math.min(57,Math.max(28.5,v)))} prefix="" min={28.5} max={57}/></div>}
-    <div className="fields ppd-fields">{method==='wage'?<><NumberField label={isZh?'原岗位当前周薪':'Current old-job weekly pay'} value={oldPay} onChange={setOldPay}/><NumberField label={isZh?'新岗位周薪':'New-job weekly pay'} value={newPay} onChange={setNewPay}/></>:<><NumberField label={isZh?'平均周薪 AWW':'Average weekly wage'} value={aww} onChange={setAww}/><NumberField label={isZh?'失用或损害比例':'Loss percentage'} value={loss} onChange={setLoss} prefix="%" min={0} max={100}/></>}</div>
-    {method!=='wage'&&<div className="ppd-weeks"><span>{isZh?'法定周数':'Scheduled weeks'}</span><strong>{method==='whole'?500:method==='scar'?scheduleParts[0][2][date]:weeks}</strong><span>× 60% AWW × {loss}%</span></div>}
-    <div className="result-line"><span>{method==='wage'?(isZh?'示意每周金额':'Illustrative weekly amount'):(isZh?'示意总额':'Illustrative total')}</span><strong>{money(result)}</strong></div>
-    <p>{detail}</p>
-  </div>
-}
-
-function ChapterDemo({item}) {
-  const s = item.section
-  const [day,setDay] = useState(12)
-  const [ppp,setPpp] = useState(true)
-  const [slots,setSlots] = useState(0)
-  const [aww,setAww] = useState(s===9?500:900)
-  const [lost,setLost] = useState(14)
-  const [oldPay,setOldPay] = useState(s===9?1040:925)
-  const [lightPay,setLightPay] = useState(500)
-  const [mode,setMode] = useState('thumb')
-  const [percent,setPercent] = useState(10)
-  const [tier,setTier] = useState(0)
-  const money = n => new Intl.NumberFormat(isZh?'zh-CN':'en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(Math.max(0,n))
-  if (s===1) return <Flow labels={isZh?['发生工作相关伤病','判断雇佣关系与因果关系','匹配医疗及现金福利']:['Work-related harm','Check employment and causation','Match the benefit category']} />
-  if (s===2) return <div className="lab-content"><div className="range-heading"><strong>{isZh?`第 ${day} 天通知雇主`:`Notice on day ${day}`}</strong><span>{day<=45?(isZh?'在一般 45 天界限内':'Within the general 45-day limit'):(isZh?'超过一般 45 天界限':'Past the general 45-day limit')}</span></div><input aria-label={isZh?'通知时间':'Day of notice'} type="range" min="0" max="60" value={day} onChange={e=>setDay(Number(e.target.value))} /><div className="range-ends"><span>0</span><span>45</span><span>60</span></div><p>{isZh?'尽快通知，并记录日期、地点；职业病与放射暴露另有规则。':'Report promptly with date and place; occupational disease and radiation exposure have different rules.'}</p></div>
-  if (s===3) return <Flow labels={isZh?['注册 CompFile 账户','电子提交申请','跟进编号与状态日']:['Register for CompFile','File electronically','Track case number and status calls']} />
-  if (s===4) return <Flow labels={isZh?['提出并证明争议要件','仲裁员审理或双方和解','复核、执行或结案']:['Prove the disputed elements','Arbitration or settlement','Review, enforce, or close']} />
-  if (s===5) return <div className="lab-content"><div className="toggle-row"><span>{isZh?'雇主有 PPP 网络？':'Employer has a PPP?'}</span><button className="segmented" onClick={()=>{setPpp(!ppp);setSlots(0)}}>{ppp?(isZh?'有 · 网络内选择':'Yes · choose in network'):(isZh?'无 · 自选医疗机构':'No · choose providers')}</button></div><div className="provider-slots">{[0,1].map(i=><button key={i} className={i<slots?'filled':''} onClick={()=>setSlots(i+1)}>{i<slots?'✓':'+'}<small>{isZh?`选择 ${i+1}`:`Choice ${i+1}`}</small></button>)}</div><p>{isZh?'急救、急诊和符合规则的转诊通常不占这两个选择名额。':'Emergency care and qualifying referrals generally do not use one of the two choices.'}</p></div>
-  if (s===6) return <div className="lab-content"><div className="fields"><NumberField label={isZh?'平均周薪 AWW':'Average weekly wage'} value={aww} onChange={setAww}/><NumberField label={isZh?'因伤缺勤日历天数':'Calendar days absent'} value={lost} onChange={setLost} prefix="" min={0} max={365}/></div><div className="result-line"><span>{isZh?'示意 TTD／周':'Illustrative TTD / week'}</span><strong>{money(aww*2/3)}</strong></div><p>{lost>=14?(isZh?'达到 14 个日历日：最初 3 个失去的工作日可能补付。':'At 14 calendar days: the first three lost workdays may become payable.'):(isZh?'未到 14 个日历日：最初 3 个失去的工作日通常不付。':'Under 14 calendar days: the first three lost workdays are generally unpaid.')}</p></div>
-  if (s===7) return <div className="lab-content"><div className="fields"><NumberField label={isZh?'原岗位当前周薪':'Current pay of old job'} value={oldPay} onChange={setOldPay}/><NumberField label={isZh?'轻工作税前周薪':'Gross light-duty pay'} value={lightPay} onChange={setLightPay}/></div><div className="formula"><span>{money(oldPay)}</span><b>−</b><span>{money(lightPay)}</span><b>× ⅔</b></div><div className="result-line"><span>{isZh?'示意 TPD／周':'Illustrative TPD / week'}</span><strong>{money((oldPay-lightPay)*2/3)}</strong></div><p>{isZh?'预设为 2024 版手册的 $925 − $500 = $425；TPD $283.33／周例子。':'Defaults reproduce the 2024 handbook example: $925 − $500 = $425; TPD is $283.33 per week.'}</p></div>
-  if (s===8) return <Flow labels={isZh?['无法回到原岗位','选择合理康复或再培训','维持福利与相关费用']:['Cannot return to old job','Reasonable retraining plan','Maintenance and incidental costs']} />
-  if (s===9) return <PpdLab />
-  if (s===10) return <Flow labels={isZh?['永久身体损失或完全失去工作能力','确定 PTD 资格与 AWW','按周给付并复核后续变化']:['Permanent qualifying loss or inability to work','Determine PTD and AWW','Weekly payment and later review']} />
-  const labels=isZh?['配偶与未满 18 岁子女','完全依赖的父母','至少 50% 依赖的其他人']:['Spouse and children under 18','Totally dependent parents','Other people at least 50% dependent']
-  return <div className="lab-content"><div className="tier-list">{labels.map((label,i)=><button key={label} className={tier===i?'active':''} onClick={()=>setTier(i)}><b>0{i+1}</b><span>{label}</span></button>)}</div><p>{isZh?'请从第一顺位开始判断；是否存在前一顺位会影响后一顺位。':'Start with the first priority; the existence of a higher tier affects who receives benefits.'}</p></div>
-}
-
-function MicroDemo({item}) {
-  const [step,setStep] = useState(0)
-  useEffect(()=>setStep(0),[item.id])
-  const text = [isZh?item.zhTitle:item.enTitle, isZh?item.zhSummary:item.enSummary, isZh?'打开本条原文和现行手册核对细节。':'Check the original page and current handbook for details.']
-  return <div className="micro-demo"><div className="micro-top"><span className="eyebrow">{ui.inspect}</span><span>{step+1} / 3</span></div><div className="micro-stage" key={`${item.id}-${step}`}><span className="stage-label">{ui.stage[step]}</span><p>{text[step]}</p></div><div className="micro-controls"><div className="dots">{[0,1,2].map(i=><button aria-label={`${ui.stage[i]} ${i+1}`} aria-current={step===i?'step':undefined} onClick={()=>setStep(i)} key={i} />)}</div><button className="text-button" onClick={()=>setStep((step+1)%3)}>{step===2?ui.reset:ui.play} →</button></div></div>
-}
-
-function CaseStudy({study}) {
-  const [step,setStep] = useState(0)
-  const story = isZh?study.zh:study.en
-  return <section className="case-study"><div className="section-heading"><span className="eyebrow">{ui.case} · {study.citation}</span><a href={study.url} target="_blank" rel="noopener noreferrer">{ui.outcome} ↗</a></div><h3>{study.name}</h3><div className="case-steps">{story.map((line,i)=><button key={i} className={i===step?'active':''} onClick={()=>setStep(i)}><b>0{i+1}</b><span>{line}</span></button>)}</div><p className="case-focus">{story[step]}</p></section>
-}
+function SourceLine({page}) { return <div className="source-line"><span>{labels.source}：</span><a href={`${handbook}#page=${page}`} target="_blank" rel="noreferrer">{labels.current} · PDF p.{page} ↗</a><span>·</span><a href={sourceIndex} target="_blank" rel="noreferrer">{labels.verify} ↗</a></div> }
+function CourtCase({section}) { const item=cases[section]; if(!item)return null;return <aside className="case-panel"><div className="eyebrow">{labels.case}</div><h3>{item.name}</h3><p>{zh?item.zh:item.en}</p><a href={item.url} target="_blank" rel="noreferrer">{item.cite} ↗</a></aside> }
+function ScheduleTable(){return <section className="schedule-section"><div className="reading-label"><span>↳</span>{zh?'2024 修订版部位表 · 法定周数':'2024 schedule of body parts · statutory weeks'}</div><p>{zh?'先选事故日期的列，再找部位；周数还须乘失用比例和适用的周费率。':'Choose the injury-date column, then the body part. Multiply weeks by loss percentage and the applicable weekly rate.'}</p><div className="table-scroll"><table><thead><tr><th>{zh?'部位':'Body part'}</th><th>&lt; 7/20/2005</th><th>7/20–11/15/2005</th><th>11/16/2005–1/31/2006</th><th>2/1/2006–6/27/2011</th><th>≥ 6/28/2011</th></tr></thead><tbody>{schedule.map(row=><tr key={row[0]}><th>{zh?row[1]:row[0]}</th>{row.slice(2).map((v,i)=><td key={i}>{v}</td>)}</tr>)}</tbody></table></div><small>{zh?'容貌损害：150 / 162 / 150 / 162 / 162 周（按相同日期列）。':'Disfigurement: 150 / 162 / 150 / 162 / 162 weeks for the same date columns.'}</small></section>}
+function ChapterStory({chapter}) { const [step,setStep]=useState(0); useEffect(()=>setStep(0),[chapter]); const s=chapters[chapter-1].story;const items=zh?s.zh:s.en;return <section className="story-panel"><div className="section-heading"><span className="eyebrow">{labels.story}</span><h2>{zh?s.zhName:s.enName}</h2></div><div className="story-steps">{items.map((part,i)=><button key={i} type="button" className={'story-step '+(step===i?'active':'')} onClick={()=>setStep(i)}><span className="story-index">0{i+1}</span><strong>{part[0]}</strong></button>)}</div><div key={step} className="story-reveal"><span className="story-line"/><p>{items[step][1]}</p></div><small>{labels.storyNote}</small></section> }
 
 function App() {
-  const parseHash=()=>{const match=window.location.hash.match(/lesson=([0-9]+\.[0-9]+)/);return lessons.some(x=>x.id===match?.[1])?match[1]:'1.1'}
-  const [id,setId]=useState(parseHash)
-  const [query,setQuery]=useState('')
-  const [done,setDone]=useState(()=>{try{return JSON.parse(localStorage.getItem(`iwcc-${LANG}-done`)||'[]')}catch{return []}})
-  const [font,setFont]=useState(()=>Number(localStorage.getItem(`iwcc-${LANG}-font`)||0))
+  const [route,setRoute]=useState(routeFromHash)
   const [menu,setMenu]=useState(false)
-  const item=lessons.find(x=>x.id===id)||lessons[0]
-  const index=lessons.findIndex(x=>x.id===item.id)
-  const chapter=chapters[item.section-1]
-  const caseStudy=courtCases.find(x=>x.section===item.section)
-  const visible=useMemo(()=>lessons.filter(x=>`${x.id} ${x.zhTitle} ${x.enTitle} ${x.zhSummary} ${x.enSummary}`.toLowerCase().includes(query.toLowerCase().trim())),[query])
-  useEffect(()=>{const onHash=()=>setId(parseHash());window.addEventListener('hashchange',onHash);return()=>window.removeEventListener('hashchange',onHash)},[])
-  useEffect(()=>localStorage.setItem(`iwcc-${LANG}-done`,JSON.stringify(done)),[done])
-  useEffect(()=>localStorage.setItem(`iwcc-${LANG}-font`,String(font)),[font])
-  function select(next) {setId(next);window.location.hash=`lesson=${next}`;setMenu(false);requestAnimationFrame(()=>document.querySelector('.reading-card')?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}))}
-  function toggleDone() {setDone(done.includes(id)?done.filter(x=>x!==id):[...done,id])}
-  const allInChapter=lessons.filter(x=>x.section===item.section)
-  const completed=allInChapter.filter(x=>done.includes(x.id)).length
-  return <div className={`site font-${font}`}>
-    <div className="top-ribbon"><span className="ribbon-dot" />{ui.warning}</div>
-    <header className="site-header"><a className="brand" href="#lesson=1.1" onClick={()=>select('1.1')}><span className="brand-symbol">W<span>.</span></span><span><b>{ui.title}</b><small>{ui.subtitle}</small></span></a><div className="header-actions"><span className="edition">{ui.edition}</span><button className="font-control" onClick={()=>setFont((font+1)%3)} aria-label={isZh?'调整字体大小':'Adjust text size'} title={isZh?'调整字体大小':'Adjust text size'}>Aa<span>+</span></button><a className="language-link" href={`${sibling}#lesson=${id}`}>{isZh?'English edition':'中文版'} ↗</a><button className="mobile-menu" onClick={()=>setMenu(!menu)} aria-expanded={menu}>{ui.mobileMenu} ☰</button></div></header>
-    <div className="layout">
-      <aside className={`sidebar ${menu?'open':''}`}><div className="sidebar-intro"><span className="eyebrow">THE ILLINOIS FIELD GUIDE</span><h1>{ui.title}<em>{ui.subtitle}</em></h1><p>{ui.intro}</p><div className="overall-progress"><div><strong>{done.length}<span> / 94</span></strong><small>{ui.count}</small></div><div className="progress-bar"><i style={{width:`${done.length/94*100}%`}} /></div></div></div><label className="search"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={ui.search} /></label>{query&&<div className="search-results">{visible.slice(0,8).map(x=><button key={x.id} onClick={()=>{select(x.id);setQuery('')}}><b>{x.id}</b><span>{isZh?x.zhTitle:x.enTitle}</span></button>)}{visible.length===0&&<small>{ui.empty}</small>}</div>}<nav aria-label={ui.outline} className="chapter-nav">{chapters.map((c,i)=>{const count=lessons.filter(x=>x.section===i+1).length;return <button key={i} className={item.section===i+1?'active':''} onClick={()=>{const target=visible.find(x=>x.section===i+1);if(target)select(target.id);else if(!query)select(`${i+1}.1`)}}><b>{String(i+1).padStart(2,'0')}</b><span>{isZh?c[0]:c[1]}</span><small>{count}</small></button>})}</nav><footer className="sidebar-footer"><a href={handbookIndex} target="_blank" rel="noopener noreferrer">IWCC ↗</a><span>{ui.sourceDate}</span></footer></aside>
-      <main id="main" className="main-content"><div className="breadcrumb"><span>{isZh?'学习路径':'LEARNING PATH'}</span><span className="slash">/</span><span>{String(item.section).padStart(2,'0')} · {isZh?chapter[0]:chapter[1]}</span></div><section className="chapter-head"><div><span className="chapter-number">{String(item.section).padStart(2,'0')}</span><h2>{isZh?chapter[0]:chapter[1]}</h2><p>{isZh?chapter[2]:chapter[3]}</p></div><div className="chapter-meter"><strong>{completed}<span> / {allInChapter.length}</span></strong><small>{ui.complete}</small><div className="progress-bar"><i style={{width:`${completed/allInChapter.length*100}%`}} /></div></div></section>
-        <section className="lesson-index"><div className="section-heading"><div><span className="eyebrow">{isZh?'本章问题':'QUESTIONS IN THIS CHAPTER'}</span><h3>{isZh?'选一条开始学':'Choose a question'}</h3></div><span className="item-count">{visible.filter(x=>x.section===item.section).length} / {allInChapter.length}</span></div><div className="lesson-list">{visible.filter(x=>x.section===item.section).map(x=><button key={x.id} className={x.id===id?'selected':''} onClick={()=>select(x.id)}><span className="lesson-id">{x.id}</span><span>{isZh?x.zhTitle:x.enTitle}</span><b aria-label={done.includes(x.id)?ui.done:''}>{done.includes(x.id)?'✓':'↗'}</b></button>)}{!visible.some(x=>x.section===item.section)&&<p className="empty">{ui.empty}</p>}</div></section>
-        <article className="reading-card"><div className="article-kicker"><span>{isZh?'问题':'QUESTION'} {item.id}</span><span>{isZh?'原手册 PDF': 'ORIGINAL PDF'} · P.{item.page}</span></div><h2>{isZh?item.zhTitle:item.enTitle}</h2><div className="lesson-summary"><span className="eyebrow">{ui.lesson}</span><p>{isZh?item.zhSummary:item.enSummary}</p></div>{deeper[item.id]&&<div className="deeper"><span className="eyebrow">{isZh?"不可忽略的细节":"Details that matter"}</span><ul>{deeper[item.id].map(([zh,en],i)=><li key={i}>{isZh?zh:en}</li>)}</ul></div>}<MicroDemo item={item}/><div className="article-actions"><button className={`mastered ${done.includes(id)?'on':''}`} onClick={toggleDone}>{done.includes(id) ? `✓ ${ui.done}` : `+ ${ui.mastered}`}</button><div><button disabled={index===0} onClick={()=>select(lessons[index-1].id)}>← {ui.prev}</button><button disabled={index===lessons.length-1} onClick={()=>select(lessons[index+1].id)}>{ui.next} →</button></div></div></article>
-        <section className="lab-card"><div className="section-heading"><div><span className="eyebrow">INTERACTIVE LAB · 0{item.section}</span><h3>{ui.try}</h3></div><span className="lab-icon" aria-hidden="true">↗</span></div><ChapterDemo key={item.section} item={item}/><small className="lab-note">{ui.note}</small></section>
-        {caseStudy&&<CaseStudy key={caseStudy.name} study={caseStudy}/>}
-        <section className="sources-card"><span className="eyebrow">{ui.source}</span><div className="source-grid"><a href={`${original}#page=${item.page}`} target="_blank" rel="noopener noreferrer"><b>01</b><span>{ui.archive}<small>PDF · p.{item.page}</small></span>↗</a><a href={`${current}#page=${item.page}`} target="_blank" rel="noopener noreferrer"><b>02</b><span>{ui.update}<small>PDF · p.{item.page}</small></span>↗</a><a href={handbookIndex} target="_blank" rel="noopener noreferrer"><b>03</b><span>{ui.official}<small>iwcc.illinois.gov</small></span>↗</a>{[3,5,6,7,9,10,11].includes(item.section)&&<a href={item.section===3?compfile:item.section===5?formPage:benefitRates} target="_blank" rel="noopener noreferrer"><b>04</b><span>{item.section===3?'CompFile':item.section===5?(isZh?'当前表格':'Current forms'):(isZh?'当前福利费率':'Current benefit rates')}<small>iwcc.illinois.gov</small></span>↗</a>}</div><details className="original-text"><summary>{ui.historical}</summary><p>{item.historicAnswer}</p></details></section>
-        <footer className="main-footer"><span>IWCC HANDBOOK · LEARNING EDITION</span><span>2013 → 2024</span></footer>
+  const [query,setQuery]=useState('')
+  const [font,setFont]=useState(()=>Number(localStorage.getItem('iwcc-font')||1))
+  const [learned,setLearned]=useState(()=>{try{return JSON.parse(localStorage.getItem('iwcc-learned')||'[]')}catch{return []}})
+  useEffect(()=>{const handler=()=>{setRoute(routeFromHash());setMenu(false);window.scrollTo({top:0,behavior:'instant'})};window.addEventListener('hashchange',handler);return()=>window.removeEventListener('hashchange',handler)},[])
+  useEffect(()=>{localStorage.setItem('iwcc-font',font)},[font])
+  useEffect(()=>{localStorage.setItem('iwcc-learned',JSON.stringify(learned))},[learned])
+  const active=route.type==='lesson'?lessons.find(x=>x.id===route.id):null
+  const section=active?.section||route.section
+  const group=sectionLessons(section)
+  const index=active?lessons.findIndex(x=>x.id===active.id):-1
+  const results=useMemo(()=>{const q=query.trim().toLowerCase();if(!q)return [];return lessons.filter(x=>[x.id,x.zhTitle,x.enTitle,x.zhSummary,x.enSummary,x.zhDetail,x.enDetail].join(' ').toLowerCase().includes(q)).slice(0,24)},[query])
+  const toggleLearned=()=>setLearned(prev=>prev.includes(active.id)?prev.filter(x=>x!==active.id):[...prev,active.id])
+  const chapter=chapters[section-1]
+  return <div className="site" style={{'--reader-scale':font}}>
+    <header className="topbar"><button type="button" className="menu-button" onClick={()=>setMenu(!menu)} aria-label={menu?labels.close:labels.menu}>{menu?'✕':'☰'}</button><button className="brand" onClick={()=>go(chapterPath(1))}><span className="brand-mark">W<span>.</span></span><span><strong>{labels.book}</strong><small>{labels.edition}</small></span></button><div className="top-actions"><span className="top-progress">{learned.length}<span>/94 {labels.learn}</span></span><a href={sibling+window.location.hash} className="language-link">{labels.language} ↗</a></div></header>
+    <div className="shell">
+      {menu&&<button className="mobile-scrim" aria-label={labels.close} onClick={()=>setMenu(false)}/>}
+      <aside className={'sidebar '+(menu?'open':'')}>
+        <div className="sidebar-heading"><span className="eyebrow">{labels.chapters}</span><span className="sidebar-count">11 / 94</span></div>
+        <label className="search-box"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={labels.search}/>{query&&<button onClick={()=>setQuery('')} aria-label="clear">×</button>}</label>
+        {query?<div className="search-results"><p>{labels.results} · {results.length}</p>{results.length?results.map(x=><button key={x.id} onClick={()=>{go(lessonPath(x.id));setQuery('')}}><span>{x.id}</span><strong>{title(x)}</strong></button>):<p>{labels.noResults}</p>}</div>:<nav className="chapter-nav">{chapters.map((x,i)=>{const n=i+1;const count=sectionLessons(n).filter(item=>learned.includes(item.id)).length;return <button key={n} className={(section===n?'selected ':'')+(route.type==='chapter'&&section===n?'chapter-active':'')} onClick={()=>go(chapterPath(n))}><span className="nav-number">{String(n).padStart(2,'0')}</span><span className="nav-copy"><strong>{zh?x.zh:x.en}</strong><small>{count}/{sectionLessons(n).length} {labels.learn}</small></span><span className="nav-arrow">↗</span></button>})}</nav>}
+        <div className="sidebar-footer"><div className="progress-bar"><span style={{width:`${learned.length/94*100}%`}}/></div><p>{labels.progress} · {learned.length}/94</p></div>
+      </aside>
+      <main className="main-content">
+        {active ? <>
+          <div className="breadcrumb"><button onClick={()=>go(chapterPath(section))}>{String(section).padStart(2,'0')} · {zh?chapter.zh:chapter.en}</button><span>/</span><span>{active.id}</span></div>
+          <article className="lesson-page" key={active.id}>
+            <div className="lesson-head"><span className="eyebrow">{labels.lesson} {active.id} <span className="eyebrow-rule"/></span><h1>{title(active)}</h1><p>{summary(active)}</p></div>
+            <div className="article-grid"><div className="article-body"><section className="reading-section"><div className="reading-label"><span>01</span>{labels.rule}</div><div className="reading-prose">{splitCopy(detail(active)).map((p,i)=><p key={i}>{p}</p>)}</div></section>{active.id==='9.2'&&<ScheduleTable/>}<div className="takeaway"><span>↳ {labels.key}</span><p>{summary(active)}</p></div><section className="reading-section application"><div className="reading-label"><span>02</span>{labels.apply}</div><h2>{labels.story}</h2><p>{zh?active.zhExample:active.enExample}</p><small>{zh?'教学情境（虚构）':'Fictional teaching example'}</small><button className="text-link" onClick={()=>go(chapterPath(section))}>{labels.chapter} ↗</button></section><section className="lab-panel"><div className="reading-label"><span>03</span>{labels.interactive}</div><Lab key={section} section={section}/></section>{({'5':'5.9','6':'6.2','8':'8.2'})[section]===active.id&&<CourtCase section={section}/>}<SourceLine page={active.sourcePage}/></div><aside className="lesson-rail"><div className="rail-head"><span className="eyebrow">{String(section).padStart(2,'0')} · {zh?chapter.zh:chapter.en}</span><strong>{group.length} {labels.lines}</strong></div>{group.map(x=><button key={x.id} className={x.id===active.id?'current':''} onClick={()=>go(lessonPath(x.id))}><span>{x.id}</span><span>{title(x)}</span>{learned.includes(x.id)&&<b>✓</b>}</button>)}</aside></div>
+            <div className="lesson-actions"><button className={'learn-button '+(learned.includes(active.id)?'learned':'')} onClick={toggleLearned}>{learned.includes(active.id)?'✓ '+labels.learned:'+ '+labels.done}</button><div><button disabled={index===0} onClick={()=>go(lessonPath(lessons[index-1]?.id))}>← {labels.previous}</button><button disabled={index===lessons.length-1} onClick={()=>go(lessonPath(lessons[index+1]?.id))}>{labels.next} →</button></div></div>
+          </article>
+        </> : <div className="chapter-page" key={section}>
+          <div className="chapter-kicker"><span>{String(section).padStart(2,'0')}</span><span>{zh?'章':'CHAPTER'}</span><span className="kicker-line"/></div>
+          <div className="chapter-hero"><div><span className="eyebrow">THE FIELD GUIDE / {String(section).padStart(2,'0')}</span><h1>{zh?chapter.zh:chapter.en}</h1><p>{zh?chapter.zhIntro:chapter.enIntro}</p><button className="primary-cta" onClick={()=>go(lessonPath(group[0].id))}>{labels.start} <span>→</span></button></div><div className="chapter-art" aria-hidden="true"><span className="art-circle"/><span className="art-index">{String(section).padStart(2,'0')}</span><span className="art-line one"/><span className="art-line two"/><span className="art-line three"/><span className="art-caption">{group.length} {labels.lines}</span></div></div>
+          <ChapterStory chapter={section}/>
+          <section className="chapter-lessons"><div className="section-heading"><span className="eyebrow">{labels.overview}</span><h2>{group.length} {labels.lines}</h2></div><div className="lesson-list">{group.map((item,i)=><button key={item.id} onClick={()=>go(lessonPath(item.id))}><span className="lesson-list-number">{item.id}</span><span className="lesson-list-copy"><strong>{title(item)}</strong><small>{summary(item)}</small></span><span className="lesson-list-end">{learned.includes(item.id)?'✓':'↗'}</span></button>)}</div></section>
+          <section className="lab-panel chapter-lab"><div className="section-heading"><span className="eyebrow">{labels.interactive}</span><h2>{zh?'先试，再读':'Try it before reading'}</h2></div><Lab key={section} section={section}/></section><CourtCase section={section}/><div className="chapter-pager"><button disabled={section===1} onClick={()=>go(chapterPath(section-1))}>← {labels.prevChapter}</button><button disabled={section===11} onClick={()=>go(chapterPath(section+1))}>{labels.nextChapter} →</button></div>
+        </div>}
+        <footer className="site-footer"><span>IWCC · {labels.edition}</span><span>{labels.footnote}</span><a href={sourceIndex} target="_blank" rel="noreferrer">{labels.verify} ↗</a><div className="font-switch"><span>{labels.font}</span><button onClick={()=>setFont(Math.max(.9,+(font-.1).toFixed(1)))} aria-label="smaller text">A−</button><button onClick={()=>setFont(Math.min(1.3,+(font+.1).toFixed(1)))} aria-label="larger text">A+</button></div></footer>
       </main>
     </div>
   </div>
